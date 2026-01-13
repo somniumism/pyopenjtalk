@@ -34,10 +34,11 @@ _pyopenjtalk_ref = files(__name__)
 _dic_dir_name = "open_jtalk_dic_utf_8-1.11"
 
 # Dictionary directory
-# defaults to the package directory where the dictionary will be automatically downloaded
+# defaults to /tmp for serverless environments (e.g., Vercel)
+_default_dict_dir = os.path.join(tempfile.gettempdir(), _dic_dir_name)
 OPEN_JTALK_DICT_DIR = os.environ.get(
     "OPEN_JTALK_DICT_DIR",
-    str(_file_manager.enter_context(as_file(_pyopenjtalk_ref / _dic_dir_name))),
+    _default_dict_dir,
 ).encode("utf-8")
 _dict_download_url = "https://github.com/r9y9/open_jtalk/releases/download/v1.11.1"
 _DICT_URL = f"{_dict_download_url}/open_jtalk_dic_utf_8-1.11.tar.gz"
@@ -54,7 +55,8 @@ def _extract_dic():
     from tqdm.auto import tqdm
 
     global OPEN_JTALK_DICT_DIR
-    pyopenjtalk_dir = _file_manager.enter_context(as_file(_pyopenjtalk_ref))
+    # Use /tmp directory for serverless environments
+    extract_dir = tempfile.gettempdir()
     with tempfile.TemporaryFile() as t:
         print('Downloading: "{}"'.format(_DICT_URL))
         with urlopen(_DICT_URL) as response:
@@ -64,10 +66,10 @@ def _extract_dic():
                 for chunk in response:
                     tar.write(chunk)
         t.seek(0)
-        print("Extracting tar file")
+        print("Extracting tar file to {}".format(extract_dir))
         with tarfile.open(mode="r|gz", fileobj=t) as f:
-            f.extractall(path=pyopenjtalk_dir)
-    OPEN_JTALK_DICT_DIR = str(pyopenjtalk_dir / _dic_dir_name).encode("utf-8")
+            f.extractall(path=extract_dir)
+    OPEN_JTALK_DICT_DIR = os.path.join(extract_dir, _dic_dir_name).encode("utf-8")
 
 
 def _lazy_init():
